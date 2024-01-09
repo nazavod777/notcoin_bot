@@ -59,7 +59,7 @@ if __name__ == '__main__':
 
     session_files: list[str] = [current_file[:-8] if current_file.endswith('.session')
                                 else current_file for current_file in listdir(path='sessions')
-                                if current_file.endswith('.session') or isdir(s=current_file)]
+                                if current_file.endswith('.session') or isdir(s=f'sessions/{current_file}')]
 
     logger.info(f'Обнаружено {len(session_files)} сессий / {len(proxies)} прокси')
 
