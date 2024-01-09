@@ -12,6 +12,7 @@ from TGConvertor.manager.manager import SessionManager
 from aiohttp_proxy import ProxyConnector
 from better_proxy import Proxy
 from loguru import logger
+from opentele.exception import TFileNotFound
 from pyuseragents import random as random_useragent
 from telethon import TelegramClient
 from telethon import functions
@@ -20,7 +21,7 @@ from telethon.sessions import StringSession
 from data import config
 from database import actions as db_actions
 from exceptions import InvalidSession
-from utils import eval_js
+from utils import eval_js, read_session_json_file
 from .headers import headers
 
 
@@ -82,7 +83,7 @@ class Farming:
                 try:
                     session = SessionManager.from_tdata_folder(folder=Path(f'sessions/{self.session_name}'))
 
-                except (ValidationError, FileNotFoundError):
+                except (ValidationError, FileNotFoundError, TFileNotFound):
                     pass
 
                 if not session:
@@ -91,7 +92,7 @@ class Farming:
                             # noinspection PyArgumentList
                             session = await action(file=Path(f'sessions/{self.session_name}.session'))
 
-                        except (ValidationError, FileNotFoundError):
+                        except (ValidationError, FileNotFoundError, TFileNotFound):
                             pass
 
                         else:
@@ -101,10 +102,16 @@ class Farming:
                     raise InvalidSession(self.session_name)
 
                 telethon_string: str = session.to_telethon_string()
+                platform_data: dict = await read_session_json_file(session_name=self.session_name)
 
                 async with TelegramClient(session=StringSession(string=telethon_string),
-                                          api_id=config.API_ID,
-                                          api_hash=config.API_HASH,
+                                          api_id=platform_data.get('api_id', config.API_ID),
+                                          api_hash=platform_data.get('api_hash', config.API_HASH),
+                                          device_model=platform_data.get('device_model', None),
+                                          system_version=platform_data.get('system_version', None),
+                                          app_version=platform_data.get('app_version', None),
+                                          lang_code=platform_data.get('lang_code', 'en'),
+                                          system_lang_code=platform_data.get('system_lang_code', 'en'),
                                           proxy=proxy_dict) as client:
                     await client.send_message(entity='notcoin_bot',
                                               message='/start r_577441_3319074')
@@ -240,8 +247,13 @@ class Farming:
 
             return False
 
-    async def start_farming(self):
+    async def start_farming(self,
+                            proxy: str | None = None):
         session_proxy: str = await db_actions.get_session_proxy_by_name(session_name=self.session_name)
+
+        if not session_proxy and config.USE_PROXY_FROM_FILE:
+            session_proxy: str = proxy
+
         tg_web_data: str = await self.get_tg_web_data(session_proxy=session_proxy)
         access_token_created_time: float = 0
         click_hash: None | str = None
@@ -257,6 +269,8 @@ class Farming:
                     while True:
                         try:
                             if time() - access_token_created_time >= 1800:
+                                tg_web_data: str = await self.get_tg_web_data(session_proxy=session_proxy)
+
                                 access_token: str = await self.get_access_token(client=client,
                                                                                 tg_web_data=tg_web_data)
                                 client.headers['Authorization']: str = f'Bearer {access_token}'
@@ -373,9 +387,10 @@ class Farming:
                 logger.error(f'{self.session_name} | Неизвестная ошибка: {error}')
 
 
-async def start_farming(session_name: str) -> None:
+async def start_farming(session_name: str,
+                        proxy: str | None = None) -> None:
     try:
-        await Farming(session_name=session_name).start_farming()
+        await Farming(session_name=session_name).start_farming(proxy=proxy)
 
     except InvalidSession:
         logger.error(f'{session_name} | Invalid Session')
