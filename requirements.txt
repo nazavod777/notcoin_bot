@@ -6,3 +6,4 @@ Telethon>=1.32.1
 Pyrogram>=2.0.106
 aiosqlite>=0.17.0
 better-proxy>=0.2.2
+aiohttp-proxy>=0.1.2
