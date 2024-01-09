@@ -314,7 +314,7 @@ class Farming:
                                                 energy_price: int | None = current_merge['price']
 
                                                 if new_balance >= energy_price \
-                                                        and current_merge['max'] < current_merge['count']:
+                                                        and current_merge['max'] > current_merge['count']:
                                                     sleep_before_buy_merge: int = randint(
                                                         a=config.SLEEP_BEFORE_BUY_MERGE[0],
                                                         b=config.SLEEP_BEFORE_BUY_MERGE[1]
@@ -334,7 +334,7 @@ class Farming:
                                                 speed_price: int | None = current_merge['price']
 
                                                 if new_balance >= speed_price \
-                                                        and current_merge['max'] < current_merge['count']:
+                                                        and current_merge['max'] > current_merge['count']:
                                                     sleep_before_buy_merge: int = randint(
                                                         a=config.SLEEP_BEFORE_BUY_MERGE[0],
                                                         b=config.SLEEP_BEFORE_BUY_MERGE[1]
@@ -354,7 +354,7 @@ class Farming:
                                                 click_price: int | None = current_merge['price']
 
                                                 if new_balance >= click_price \
-                                                        and current_merge['max'] < current_merge['count']:
+                                                        and current_merge['max'] > current_merge['count']:
                                                     sleep_before_buy_merge: int = randint(
                                                         a=config.SLEEP_BEFORE_BUY_MERGE[0],
                                                         b=config.SLEEP_BEFORE_BUY_MERGE[1])
