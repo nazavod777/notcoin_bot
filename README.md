@@ -10,7 +10,7 @@
 + _Авто-покупка предметов при наличии денег (enery boost, speed boost, click boost)_
 + _Рандомное время сна между кликами_
 + _Рандомное количество кликов за запрос_
-+ _Поддержка tdata/pyrogram .session / telethon .session_
++ _Поддержка tdata / pyrogram .session / telethon .session_
 
 ### data/config.py  
 _**API_ID / API_HASH** - Данные платформы, с которой запускать сессию Telegram (сток - Android)  
