@@ -12,7 +12,7 @@ from TGConvertor.manager.manager import SessionManager
 from aiohttp_proxy import ProxyConnector
 from better_proxy import Proxy
 from loguru import logger
-from opentele.exception import TFileNotFound
+from opentele.exception import TFileNotFound, OpenTeleException
 from pyuseragents import random as random_useragent
 from telethon import TelegramClient
 from telethon import functions
@@ -83,7 +83,7 @@ class Farming:
                 try:
                     session = SessionManager.from_tdata_folder(folder=Path(f'sessions/{self.session_name}'))
 
-                except (ValidationError, FileNotFoundError, TFileNotFound):
+                except (ValidationError, FileNotFoundError, TFileNotFound, OpenTeleException):
                     pass
 
                 if not session:
@@ -92,7 +92,7 @@ class Farming:
                             # noinspection PyArgumentList
                             session = await action(file=Path(f'sessions/{self.session_name}.session'))
 
-                        except (ValidationError, FileNotFoundError, TFileNotFound):
+                        except (ValidationError, FileNotFoundError, TFileNotFound, OpenTeleException):
                             pass
 
                         else:
@@ -212,6 +212,12 @@ class Farming:
                         and isinstance((await r.json(content_type=None))['data'], dict) \
                         and (await r.json(content_type=None))['data'].get('message', '') == 'Turbo mode is expired':
                     raise TurboExpired()
+
+                if (await r.json(content_type=None)).get('data') \
+                        and isinstance((await r.json(content_type=None))['data'], dict) \
+                        and (await r.json(content_type=None))['data'].get('message', '') == 'Try later':
+                    await asyncio.sleep(delay=1)
+                    continue
 
                 if (await r.json(content_type=None)).get('ok'):
                     logger.success(f'{self.session_name} | Успешно сделал Click | Balance: '
@@ -458,6 +464,7 @@ class Farming:
                                     logger.success(f'{self.session_name} | Успешно активировал Turbo: '
                                                    f'x{turbo_multiplier}')
                                     active_turbo: bool = True
+                                    continue
 
                                 else:
                                     turbo_multiplier: int = 1
@@ -554,6 +561,25 @@ class Farming:
                                 if await self.activate_task(client=client,
                                                             task_id=3):
                                     logger.success(f'{self.session_name} | Успешно запросил ежедневное Turbo')
+
+                                    random_sleep_time: int = randint(a=config.SLEEP_BEFORE_ACTIVATE_TURBO[0],
+                                                                     b=config.SLEEP_BEFORE_ACTIVATE_TURBO[1])
+
+                                    logger.info(f'{self.session_name} | Сплю {random_sleep_time} перед активацией '
+                                                f'Turbo')
+
+                                    await asyncio.sleep(delay=random_sleep_time)
+
+                                    turbo_multiplier: int | None = await self.activate_turbo(client=client)
+
+                                    if turbo_multiplier:
+                                        logger.success(f'{self.session_name} | Успешно активировал Turbo: '
+                                                       f'x{turbo_multiplier}')
+                                        active_turbo: bool = True
+                                        continue
+
+                                    else:
+                                        turbo_multiplier: int = 1
 
                             elif free_daily_full_energy:
                                 random_sleep_time: int = randint(a=config.SLEEP_BEFORE_ACTIVATE_FREE_BUFFS[0],
