@@ -1,3 +1,6 @@
+from itertools import cycle
+from better_proxy import Proxy
+from os.path import isdir
 import asyncio
 from os import listdir
 from os import mkdir
@@ -28,7 +31,8 @@ async def main() -> None:
 
         case 2:
             tasks: list = [
-                asyncio.create_task(coro=start_farming(session_name=current_session_name))
+                asyncio.create_task(coro=start_farming(session_name=current_session_name,
+                                                       proxy=next(proxies_cycled) if proxies_cycled else None))
                 for current_session_name in session_files
             ]
 
@@ -42,10 +46,22 @@ if __name__ == '__main__':
     if not exists(path='sessions'):
         mkdir(path='sessions')
 
-    session_files: list[str] = [current_file[:-8] if current_file.endswith('.session')
-                                else current_file for current_file in listdir(path='sessions')]
+    with open(file='data/proxies.txt',
+              mode='r',
+              encoding='utf-8-sig') as file:
+        proxies: list[str] = [Proxy.from_str(proxy=row.strip()).as_url for row in file]
 
-    logger.info(f'Обнаружено {len(session_files)} сессий')
+    if proxies:
+        proxies_cycled: cycle = cycle(proxies)
+
+    else:
+        proxies_cycled: None = None
+
+    session_files: list[str] = [current_file[:-8] if current_file.endswith('.session')
+                                else current_file for current_file in listdir(path='sessions')
+                                if current_file.endswith('.session') or isdir(s=current_file)]
+
+    logger.info(f'Обнаружено {len(session_files)} сессий / {len(proxies)} прокси')
 
     user_action: int = int(input('\n1. Создать сессию'
                                  '\n2. Запустить бота с существующих сессий'
