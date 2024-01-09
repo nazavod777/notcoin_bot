@@ -19,3 +19,4 @@ _**API_ID / API_HASH** - Данные платформы, с которой за
 **SLEEP_BEFORE_BUY_MERGE** - Диапазон задержки между покупкой бустов (в секундах)_
 
 # DONATE (_any evm_) - 0xDEADf12DE9A24b47Da0a43E1bA70B8972F5296F2
+# DONATE (_sol_) - 2Fw2wh1pN77ELg6sWnn5cZrTDCK5ibfnKymTuCXL8sPX
