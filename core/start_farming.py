@@ -254,7 +254,6 @@ class Farming:
         if not session_proxy and config.USE_PROXY_FROM_FILE:
             session_proxy: str = proxy
 
-        tg_web_data: str = await self.get_tg_web_data(session_proxy=session_proxy)
         access_token_created_time: float = 0
         click_hash: None | str = None
 
