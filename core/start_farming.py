@@ -1,4 +1,5 @@
 import asyncio
+from base64 import b64decode
 from math import floor
 from pathlib import Path
 from random import randint
@@ -19,6 +20,7 @@ from telethon.sessions import StringSession
 from data import config
 from database import actions as db_actions
 from exceptions import InvalidSession
+from utils import eval_js
 from .headers import headers
 
 
@@ -153,25 +155,34 @@ class Farming:
                           clicks_count: int,
                           tg_web_data: str,
                           balance: int,
-                          total_coins: str | int) -> int | None:
+                          total_coins: str | int,
+                          click_hash: str | None = None) -> tuple[int | None, str | None]:
         while True:
             try:
+                json_data: dict = {
+                    'count': clicks_count,
+                    'webAppData': tg_web_data
+                }
+
+                if click_hash:
+                    json_data['hash']: str = click_hash
+
                 r: aiohttp.ClientResponse = await client.post(
                     url='https://clicker-api.joincommunity.xyz/clicker/core/click',
-                    json={
-                        'count': clicks_count,
-                        'webAppData': tg_web_data
-                    },
+                    json=json_data,
                     verify_ssl=False)
 
                 if (await r.json(content_type=None)).get('ok'):
                     logger.success(f'{self.session_name} | Успешно сделал Click | Balance: '
                                    f'{balance + clicks_count} (+{clicks_count}) | Total Coins: {total_coins}')
 
-                    return balance + clicks_count
+                    next_hash: str | None = eval_js(
+                        function=b64decode(s=(await r.json())['data'][0]['hash'][0]).decode())
+
+                    return balance + clicks_count, next_hash
 
                 logger.error(f'{self.session_name} | Не удалось сделать Click, ответ: {await r.text()}')
-                return
+                return None, None
 
             except Exception as error:
                 logger.error(f'{self.session_name} | Неизвестная ошибка при попытке сделать Click: {error}')
@@ -233,6 +244,7 @@ class Farming:
         session_proxy: str = await db_actions.get_session_proxy_by_name(session_name=self.session_name)
         tg_web_data: str = await self.get_tg_web_data(session_proxy=session_proxy)
         access_token_created_time: float = 0
+        click_hash: None | str = None
 
         while True:
             try:
@@ -269,13 +281,14 @@ class Farming:
                                                         b=max_clicks_count) \
                                                 * profile_data['data'][0]['multipleClicks']
 
-                            new_balance: int | None = await self.send_clicks(client=client,
+                            new_balance, click_hash = await self.send_clicks(client=client,
                                                                              clicks_count=clicks_count,
                                                                              tg_web_data=tg_web_data,
                                                                              balance=profile_data['data'][0][
                                                                                  'balanceCoins'],
                                                                              total_coins=profile_data['data'][0][
-                                                                                 'totalCoins'])
+                                                                                 'totalCoins'],
+                                                                             click_hash=click_hash)
 
                             if new_balance:
                                 merged_data: dict | None = await self.get_merged_list(client=client)
