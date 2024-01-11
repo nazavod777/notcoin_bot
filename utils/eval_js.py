@@ -1,5 +1,4 @@
-from pythonmonkey import eval as js_eval
-
+from js2py import eval_js as js_eval
 
 def eval_js(function: str) -> int | None:
     match function:
